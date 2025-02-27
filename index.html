@@ -299,6 +299,11 @@
         document.getElementById('dentalForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // 제출 버튼 비활성화 (중복 제출 방지)
+            const submitButton = document.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = '제출 중...';
+            
             // 폼 데이터 수집 및 URLSearchParams로 변환
             const formData = new FormData(this);
             
@@ -316,31 +321,28 @@
             // 타임스탬프 추가
             formData.append('timestamp', new Date().toISOString());
             
-            // URLSearchParams 형식으로 변환
-            const searchParams = new URLSearchParams();
-            for (const [key, value] of formData.entries()) {
-                searchParams.append(key, value);
-            }
+            // 객체로 변환 (JSON 전송용)
+            const formDataObj = {};
+            formData.forEach((value, key) => {
+                formDataObj[key] = value;
+            });
             
-            const formDataString = searchParams.toString();
+            console.log('Sending data to:', 'https://script.google.com/macros/s/AKfycbypx8nsNM4qs29zyZS7dw1YOKGnn1Zz0mhCMW-KqnyDSuntZ121lvFPzH54Jk5Ay4w/exec');
+            console.log('Data being sent:', formDataObj);
             
-            // Google Apps Script 웹앱 URL
-            const scriptURL = 'https://script.google.com/macros/s/AKfycbzcZDytcj8jtHRtoHc_oe17vZ4OpTCDMWwS3zazJlIdDxZTR4NP6uqTDvFoR457Vgo/exec';
-            
-            // 데이터 전송 (폼 데이터 형식으로)
-            fetch(scriptURL, {
+            // JSON 형식으로 데이터 전송
+            fetch('https://script.google.com/macros/s/AKfycbypx8nsNM4qs29zyZS7dw1YOKGnn1Zz0mhCMW-KqnyDSuntZ121lvFPzH54Jk5Ay4w/exec', {
                 method: 'POST',
-                mode: 'no-cors', // CORS 정책 문제 해결
+                mode: 'no-cors',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/json'
                 },
-                body: formDataString
+                body: JSON.stringify(formDataObj)
             })
             .then(response => {
                 // no-cors 모드에서는 response.ok에 접근할 수 없음
                 // 요청이 전송되면 성공으로 간주
                 console.log('Form submitted successfully');
-                console.log('Form data sent:', formDataString);
                 
                 document.getElementById('successMessage').style.display = 'block';
                 document.getElementById('dentalForm').reset();
@@ -350,16 +352,25 @@
                     document.getElementById('successMessage').style.display = 'none';
                 }, 3000);
                 
+                // 제출 버튼 다시 활성화
+                submitButton.disabled = false;
+                submitButton.textContent = '제출하기';
+                
                 return true;
             })
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorMessage').textContent = '제출 중 오류가 발생했습니다: ' + error.message;
                 
                 // 3초 후 에러 메시지 숨김
                 setTimeout(() => {
                     document.getElementById('errorMessage').style.display = 'none';
-                }, 3000);
+                }, 5000);
+                
+                // 제출 버튼 다시 활성화
+                submitButton.disabled = false;
+                submitButton.textContent = '제출하기';
             });
         });
     </script>
